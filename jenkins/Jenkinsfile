@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION = 'us-east-2'
+        AWS_REGION     = 'us-east-2'
         AWS_ACCOUNT_ID = '182399722683'
-        ECR_REPO = 'tech-challenge-2-app'
-        IMAGE_TAG = "${BUILD_NUMBER}"
-        EKS_CLUSTER = 'tech-challenge-2-cluster'
-        PATH = "/usr/local/bin:/usr/bin:/bin"
+        ECR_REPO       = 'tech-challenge-2-app'
+        IMAGE_TAG      = "${BUILD_NUMBER}"
+        EKS_CLUSTER    = 'tech-challenge-2-cluster'
+        PATH           = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     }
 
     stages {
@@ -20,34 +20,34 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 dir('app') {
-                    sh 'docker build -t $ECR_REPO:$IMAGE_TAG .'
+                    sh 'docker build -t ${ECR_REPO}:${IMAGE_TAG} .'
                 }
             }
         }
 
         stage('Tag Image') {
             steps {
-                sh 'docker tag $ECR_REPO:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG'
-                sh 'docker tag $ECR_REPO:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest'
+                sh 'docker tag ${ECR_REPO}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}'
+                sh 'docker tag ${ECR_REPO}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest'
             }
         }
 
         stage('Login to ECR') {
             steps {
-                sh 'aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com'
+                sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com'
             }
         }
 
         stage('Push Image to ECR') {
             steps {
-                sh 'docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG'
-                sh 'docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest'
+                sh 'docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}'
+                sh 'docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest'
             }
         }
 
         stage('Update kubeconfig') {
             steps {
-                sh 'aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER'
+                sh 'aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}'
             }
         }
 
@@ -55,14 +55,15 @@ pipeline {
             steps {
                 sh """
                 helm upgrade --install hello-app ./helm/hello-app \
-                  --set image.repository=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO \
-                  --set image.tag=$IMAGE_TAG
+                  --set image.repository=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO} \
+                  --set image.tag=${IMAGE_TAG}
                 """
             }
         }
 
         stage('Verify Deployment') {
             steps {
+                sh 'kubectl get deployments'
                 sh 'kubectl get pods'
                 sh 'kubectl get svc'
                 sh 'kubectl get hpa'
