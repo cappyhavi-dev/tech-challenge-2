@@ -26,3 +26,23 @@ hpa:
   maxReplicas: 12
   cpuUtilization: 50
   memoryUtilization: 50
+
+  #I can include Liveness and Readiness probes here if needed#
+  #livenessProbe:
+    httpGet:
+      path: /health
+      port: 5000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  #readinessProbe:
+    httpGet:
+      path: /ready
+      port: 5000
+    timeoutSeconds: 5
+    failureThreshold: 3
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    

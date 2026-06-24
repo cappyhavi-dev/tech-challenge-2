@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hello-app
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/cappyhavi-dev/Tech-challenge-2-redo
+    targetRevision: main
+    path: helm
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hello-app
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
